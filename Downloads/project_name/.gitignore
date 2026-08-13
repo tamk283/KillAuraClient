@@ -1,0 +1,15 @@
+# Ignore files and directories that should not be committed to version control
+
+# Ignore build output
+/build/
+/dist/
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+
+# Ignore environment files
+.env
+
+# Ignore node_modules
+/node_modules/
