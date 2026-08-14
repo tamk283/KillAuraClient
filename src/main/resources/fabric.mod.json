@@ -3,18 +3,19 @@
   "id": "killaura",
   "version": "1.0.0",
   "name": "KillAura Client",
-  "description": "KillAura mod for Fabric 1.21.4",
-  "authors": ["You"],
+  "description": "Combat client for Fabric 1.21.4",
+  "authors": ["tamk283"],
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
-    "main": [
+    "client": [
       "com.example.killaura.KillAuraMod"
     ]
   },
   "depends": {
     "fabricloader": ">=0.15.11",
     "minecraft": "~1.21.4",
-    "fabric-api": "*"
+    "fabric-api": "*",
+    "java": ">=21"
   }
 }

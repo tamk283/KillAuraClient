@@ -8,61 +8,51 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Панель списка модулей.
+ * Панель списка модулей выбранной категории.
  */
 public class ModuleListPanel {
     private final ClickGUI parent;
     private final List<ModuleButton> buttons;
-    private CategoryPanel.Category category;
-    private int scrollOffset;
+    private BaseModule.Category category;
+    private int scrollOffset = 0;
+    private static final int VISIBLE_HEIGHT = 300;
+    private static final int BUTTON_HEIGHT = 24;
+    private static final int BUTTON_SPACING = 4;
+    private static final int LIST_X = 120;
+    private static final int LIST_Y = 10;
+    private static final int LIST_WIDTH = 200;
 
     public ModuleListPanel(ClickGUI parent) {
         this.parent = parent;
         this.buttons = new ArrayList<>();
     }
 
-    /**
-     * Устанавливает категорию.
-     * @param category категория.
-     */
-    public void setCategory(CategoryPanel.Category category) {
+    public void setCategory(BaseModule.Category category) {
         this.category = category;
         updateButtons();
     }
 
-    /**
-     * Обновляет список кнопок модулей.
-     */
     private void updateButtons() {
         buttons.clear();
-        int y = 10;
-        List<BaseModule> modules = ModuleManager.getInstance().getAllModules();
+        if (category == null) return;
+        int y = LIST_Y - scrollOffset;
+        List<BaseModule> modules = ModuleManager.getInstance().getModulesByCategory(category);
         for (BaseModule module : modules) {
-            buttons.add(new ModuleButton(module, 120, y, 200, 20));
-            y += 25;
+            buttons.add(new ModuleButton(module, LIST_X, y, LIST_WIDTH, BUTTON_HEIGHT));
+            y += BUTTON_HEIGHT + BUTTON_SPACING;
         }
     }
 
-    /**
-     * Рисует панель списка модулей.
-     * @param context контекст отрисовки.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @param delta время с последнего кадра.
-     */
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        // Фон панели списка
+        context.fill(LIST_X - 4, LIST_Y - 4, LIST_X + LIST_WIDTH + 4, LIST_Y + VISIBLE_HEIGHT, 0x80000000);
         for (ModuleButton button : buttons) {
+            // Пропускаем кнопки за пределами видимой области
+            if (button.getY() + BUTTON_HEIGHT < LIST_Y || button.getY() > LIST_Y + VISIBLE_HEIGHT) continue;
             button.render(context, mouseX, mouseY, delta);
         }
     }
 
-    /**
-     * Обрабатывает клик мыши.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @param button кнопка мыши.
-     * @return true, если клик обработан.
-     */
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         for (ModuleButton moduleButton : buttons) {
             if (moduleButton.isHovered(mouseX, mouseY)) {
@@ -77,27 +67,15 @@ public class ModuleListPanel {
         return false;
     }
 
-    /**
-     * Обрабатывает отпускание кнопки мыши.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @param button кнопка мыши.
-     * @return true, если отпускание кнопки обработано.
-     */
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         return false;
     }
 
-    /**
-     * Обрабатывает прокрутку мыши.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @param amount количество прокрутки.
-     * @return true, если прокрутка обработана.
-     */
     public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-        scrollOffset += (int) amount * 10;
-        scrollOffset = Math.max(0, scrollOffset);
+        int maxScroll = Math.max(0, buttons.size() * (BUTTON_HEIGHT + BUTTON_SPACING) - VISIBLE_HEIGHT);
+        scrollOffset -= (int) amount * 20;
+        scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset));
+        updateButtons();
         return true;
     }
 }

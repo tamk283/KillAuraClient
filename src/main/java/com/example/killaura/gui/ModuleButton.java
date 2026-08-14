@@ -6,7 +6,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 
 /**
- * Кнопка модуля.
+ * Кнопка модуля в списке.
  */
 public class ModuleButton {
     private final BaseModule module;
@@ -23,46 +23,54 @@ public class ModuleButton {
         this.height = height;
     }
 
-    /**
-     * Рисует кнопку модуля.
-     * @param context контекст отрисовки.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @param delta время с последнего кадра.
-     */
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         boolean hovered = isHovered(mouseX, mouseY);
-        int color = hovered ? 0xFF00d4ff : 0xFF1a1a2e;
-        int textColor = module.isEnabled() ? 0xFF00FF00 : 0xFFFFFFFF;
+        boolean enabled = module.isEnabled();
+        int bg;
+        if (enabled) {
+            bg = 0xFF0f3460;
+        } else if (hovered) {
+            bg = 0xFF16213e;
+        } else {
+            bg = 0xFF1a1a2e;
+        }
 
-        // Рисуем фон кнопки
-        context.fill(x, y, x + width, y + height, color);
+        context.fill(x, y, x + width, y + height, bg);
+        // Полоса состояния слева
+        context.fill(x, y, x + 2, y + height, enabled ? 0xFF00ff88 : 0xFF3a3a4a);
 
-        // Рисуем текст кнопки (исправлено)
+        int textColor = enabled ? 0xFF00ff88 : 0xFFFFFFFF;
         context.drawTextWithShadow(
             MinecraftClient.getInstance().textRenderer,
             Text.of(module.getName()),
-            x + 5,
-            y + 5,
+            x + 8,
+            y + height / 2 - 4,
             textColor
         );
+
+        // Индикатор настроек (если есть настройки)
+        if (!module.getSettings().isEmpty()) {
+            String indicator = "»";
+            int indicatorColor = hovered ? 0xFF00d4ff : 0xFF888888;
+            context.drawTextWithShadow(
+                MinecraftClient.getInstance().textRenderer,
+                Text.of(indicator),
+                x + width - 12,
+                y + height / 2 - 4,
+                indicatorColor
+            );
+        }
     }
 
-    /**
-     * Проверяет, находится ли курсор над кнопкой.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @return true, если курсор находится над кнопкой.
-     */
     public boolean isHovered(double mouseX, double mouseY) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 
-    /**
-     * Возвращает модуль.
-     * @return модуль.
-     */
     public BaseModule getModule() {
         return module;
+    }
+
+    public int getY() {
+        return y;
     }
 }
