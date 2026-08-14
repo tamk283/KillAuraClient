@@ -39,7 +39,7 @@ public class EnumSelectorWidget {
         );
 
         // Стрелки и значение
-        String valueText = "‹ " + setting.getValue().name() + " ›";
+        String valueText = "‹ " + ((Enum<?>) setting.getValue()).name() + " ›";
         int valueColor = hovered ? 0xFF00d4ff : 0xFFFFFFFF;
         int textWidth = client.textRenderer.getWidth(valueText);
         int valueX = x + width - textWidth;
