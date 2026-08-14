@@ -1,5 +1,6 @@
 package com.example.killaura.gui;
 
+import com.example.killaura.core.BaseModule;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
@@ -8,13 +9,13 @@ import net.minecraft.text.Text;
  * Кнопка категории.
  */
 public class CategoryButton {
-    private final CategoryPanel.Category category;
+    private final BaseModule.Category category;
     private final int x;
     private final int y;
     private final int width;
     private final int height;
 
-    public CategoryButton(CategoryPanel.Category category, int x, int y, int width, int height) {
+    public CategoryButton(BaseModule.Category category, int x, int y, int width, int height) {
         this.category = category;
         this.x = x;
         this.y = y;
@@ -22,45 +23,39 @@ public class CategoryButton {
         this.height = height;
     }
 
-    /**
-     * Рисует кнопку категории.
-     * @param context контекст отрисовки.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @param delta время с последнего кадра.
-     */
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void render(DrawContext context, int mouseX, int mouseY, float delta, BaseModule.Category selected) {
         boolean hovered = isHovered(mouseX, mouseY);
-        int color = hovered ? 0xFF00d4ff : 0xFF1a1a2e;
+        boolean selectedCategory = category == selected;
+        int color;
+        if (selectedCategory) {
+            color = 0xFF16213e;
+        } else if (hovered) {
+            color = 0xFF0f3460;
+        } else {
+            color = 0xFF1a1a2e;
+        }
 
-        // Рисуем фон кнопки
         context.fill(x, y, x + width, y + height, color);
+        // Полоса-индикатор выбранной категории
+        if (selectedCategory) {
+            context.fill(x, y, x + 2, y + height, 0xFF00d4ff);
+        }
 
-        // Рисуем текст кнопки (исправлено)
+        int textColor = selectedCategory ? 0xFF00d4ff : 0xFFFFFFFF;
         context.drawTextWithShadow(
             MinecraftClient.getInstance().textRenderer,
             Text.of(category.name()),
-            x + 5,
-            y + 5,
-            0xFFFFFFFF
+            x + 8,
+            y + 6,
+            textColor
         );
     }
 
-    /**
-     * Проверяет, находится ли курсор над кнопкой.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @return true, если курсор находится над кнопкой.
-     */
     public boolean isHovered(double mouseX, double mouseY) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 
-    /**
-     * Возвращает категорию.
-     * @return категория.
-     */
-    public CategoryPanel.Category getCategory() {
+    public BaseModule.Category getCategory() {
         return category;
     }
 }

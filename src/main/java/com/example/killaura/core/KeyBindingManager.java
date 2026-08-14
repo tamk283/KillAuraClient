@@ -9,50 +9,50 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Менеджер горячих клавиш, отвечает за управление горячими клавишами.
+ * Менеджер горячих клавиш.
+ * Right Shift — открыть/закрыть ClickGUI.
  */
 public class KeyBindingManager {
-    private static final KeyBindingManager INSTANCE = new KeyBindingManager();
+    private static KeyBindingManager INSTANCE;
     private final MinecraftClient client;
     private KeyBinding openGuiKey;
+    private boolean initialized = false;
 
     private KeyBindingManager() {
         client = MinecraftClient.getInstance();
-        registerKeyBindings();
-        ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
-    /**
-     * Возвращает экземпляр KeyBindingManager.
-     * @return экземпляр KeyBindingManager.
-     */
     public static KeyBindingManager getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new KeyBindingManager();
+        }
         return INSTANCE;
     }
 
     /**
-     * Регистрирует горячие клавиши.
+     * Регистрирует горячие клавиши и обработчик тиков.
+     * Должен вызываться на стороне клиента (ClientModInitializer).
      */
-    private void registerKeyBindings() {
+    public void register() {
+        if (initialized) return;
+        initialized = true;
+
         openGuiKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.killaura.opengui",
             InputUtil.Type.KEYSYM,
             GLFW.GLFW_KEY_RIGHT_SHIFT,
             "category.killaura"
         ));
+
+        ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
-    /**
-     * Обрабатывает тики клиента.
-     * @param client клиент Minecraft.
-     */
     private void onTick(MinecraftClient client) {
-        if (openGuiKey.wasPressed() && client.currentScreen == null) {
-            // Открыть/закрыть меню
-            if (ClickGUI.getInstance().isOpen()) {
-                ClickGUI.getInstance().close();
-            } else {
+        if (openGuiKey != null && openGuiKey.wasPressed()) {
+            if (client.currentScreen == null) {
                 ClickGUI.getInstance().open();
+            } else if (ClickGUI.getInstance().isOpen()) {
+                ClickGUI.getInstance().close();
             }
         }
     }

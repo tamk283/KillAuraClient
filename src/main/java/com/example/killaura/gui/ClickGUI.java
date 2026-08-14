@@ -1,76 +1,62 @@
 package com.example.killaura.gui;
 
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
-import net.minecraft.world.GameMode;
-import org.lwjgl.glfw.GLFW;
 
 /**
- * Основное меню клиента.
+ * Основное меню клиента (ClickGUI).
+ * Открывается по Right Shift, содержит панели категорий, списка модулей и настроек.
  */
 public class ClickGUI extends Screen {
     private static final ClickGUI INSTANCE = new ClickGUI();
-    private boolean open = false;
+    private final MinecraftClient client;
     private CategoryPanel categoryPanel;
     private ModuleListPanel moduleListPanel;
     private SettingsPanel settingsPanel;
-    private KeyBinding openGuiKey;
-    private final MinecraftClient client;
+    private boolean panelsInitialized = false;
 
     private ClickGUI() {
         super(Text.of("ClickGUI"));
         client = MinecraftClient.getInstance();
-        categoryPanel = new CategoryPanel(this);
-        moduleListPanel = new ModuleListPanel(this);
-        settingsPanel = new SettingsPanel(this);
-        registerKeyBinding();
-        ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
     public static ClickGUI getInstance() {
         return INSTANCE;
     }
 
-    private void registerKeyBinding() {
-        openGuiKey = new KeyBinding(
-            "key.killaura.opengui",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_RIGHT_SHIFT,
-            "category.killaura"
-        );
-    }
-
-    private void onTick(MinecraftClient client) {
-        if (openGuiKey.wasPressed() && client.currentScreen == null && client.player != null && !client.player.isDead() && client.interactionManager != null && client.interactionManager.getCurrentGameMode() != GameMode.CREATIVE) {
-            if (isOpen()) {
-                close();
-            } else {
-                open();
-            }
+    private void initPanels() {
+        if (panelsInitialized) return;
+        panelsInitialized = true;
+        categoryPanel = new CategoryPanel(this);
+        moduleListPanel = new ModuleListPanel(this);
+        settingsPanel = new SettingsPanel(this);
+        if (categoryPanel.getSelectedCategory() != null) {
+            moduleListPanel.setCategory(categoryPanel.getSelectedCategory());
         }
     }
 
+    @Override
+    protected void init() {
+        initPanels();
+    }
+
     public void open() {
-        if (client != null && client.currentScreen == null && client.player != null && !client.player.isDead() && client.interactionManager != null && client.interactionManager.getCurrentGameMode() != GameMode.CREATIVE) {
-            open = true;
+        if (client != null && client.player != null) {
+            initPanels();
             client.setScreen(this);
         }
     }
 
     public void close() {
-        open = false;
         if (client != null) {
             client.setScreen(null);
         }
     }
 
     public boolean isOpen() {
-        return open;
+        return client != null && client.currentScreen == this;
     }
 
     @Override
@@ -97,6 +83,12 @@ public class ClickGUI extends Screen {
         if (moduleListPanel != null) moduleListPanel.mouseReleased(mouseX, mouseY, button);
         if (settingsPanel != null) settingsPanel.mouseReleased(mouseX, mouseY, button);
         return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double startX, double startY) {
+        if (settingsPanel != null) settingsPanel.mouseDragged(mouseX, mouseY, button);
+        return super.mouseDragged(mouseX, mouseY, button, startX, startY);
     }
 
     @Override
