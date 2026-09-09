@@ -1,3 +1,27 @@
+# Archives
 *.zip
 gradle-8.8-bin.zip
 KillAuraClient.zip
+
+# Gradle
+.gradle/
+build/
+
+# Sandbox/user-home leftovers
+.bashrc
+.cache/
+Downloads/
+
+# IDE/editor files
+.idea/
+.vscode/
+*.iml
+
+# Java/Minecraft runtime files
+run/
+logs/
+crash-reports/
+config/
+
+# Temporary backups
+*.bak

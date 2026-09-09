@@ -2,8 +2,10 @@ package com.example.killaura.core;
 
 import com.example.killaura.modules.KillAuraModule;
 import com.example.killaura.modules.SpeedModule;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ModuleManager {
@@ -13,6 +15,8 @@ public class ModuleManager {
     private ModuleManager() {
         modules = new ArrayList<>();
         registerModules();
+        loadModuleStates();
+        ClientTickEvents.END_CLIENT_TICK.register(client -> updateModules());
     }
 
     public static ModuleManager getInstance() {
@@ -20,12 +24,33 @@ public class ModuleManager {
     }
 
     private void registerModules() {
-        modules.add(new KillAuraModule());
-        modules.add(new SpeedModule());
+        register(new KillAuraModule());
+        register(new SpeedModule());
+    }
+
+    private void register(BaseModule module) {
+        modules.add(module);
+    }
+
+    private void loadModuleStates() {
+        ConfigManager configManager = ConfigManager.getInstance();
+        for (BaseModule module : modules) {
+            module.restoreEnabledState(configManager.getBoolean(module.getConfigKey(), false));
+        }
     }
 
     public List<BaseModule> getAllModules() {
-        return modules;
+        return Collections.unmodifiableList(modules);
+    }
+
+    public List<BaseModule> getModulesByCategory(ModuleCategory category) {
+        List<BaseModule> filteredModules = new ArrayList<>();
+        for (BaseModule module : modules) {
+            if (module.getCategory() == category) {
+                filteredModules.add(module);
+            }
+        }
+        return filteredModules;
     }
 
     public BaseModule getModule(String name) {

@@ -1,8 +1,12 @@
 package com.example.killaura.core;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import net.fabricmc.loader.api.FabricLoader;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
 
 /**
@@ -11,10 +15,11 @@ import java.util.Properties;
 public class ConfigManager {
     private static final ConfigManager INSTANCE = new ConfigManager();
     private final Properties properties;
-    private final String configFile = "config/client.properties";
+    private final Path configFile;
 
     private ConfigManager() {
         properties = new Properties();
+        configFile = FabricLoader.getInstance().getConfigDir().resolve("killaura/client.properties");
         loadConfig();
     }
 
@@ -27,7 +32,7 @@ public class ConfigManager {
     }
 
     /**
-     * Сохраняет настройку.
+     * Сохраняет строковую настройку.
      * @param key ключ настройки.
      * @param value значение настройки.
      */
@@ -37,7 +42,7 @@ public class ConfigManager {
     }
 
     /**
-     * Возвращает значение настройки.
+     * Возвращает строковую настройку.
      * @param key ключ настройки.
      * @param defaultValue значение по умолчанию.
      * @return значение настройки или значение по умолчанию, если настройка не найдена.
@@ -47,13 +52,51 @@ public class ConfigManager {
     }
 
     /**
+     * Сохраняет boolean-настройку.
+     * @param key ключ настройки.
+     * @param value значение настройки.
+     */
+    public void setBoolean(String key, boolean value) {
+        setProperty(key, Boolean.toString(value));
+    }
+
+    /**
+     * Возвращает boolean-настройку.
+     * @param key ключ настройки.
+     * @param defaultValue значение по умолчанию.
+     * @return значение настройки или значение по умолчанию при отсутствии/ошибке формата.
+     */
+    public boolean getBoolean(String key, boolean defaultValue) {
+        String value = properties.getProperty(key);
+        if (value == null) {
+            return defaultValue;
+        }
+
+        if (value.equalsIgnoreCase("true")) {
+            return true;
+        }
+        if (value.equalsIgnoreCase("false")) {
+            return false;
+        }
+
+        return defaultValue;
+    }
+
+    /**
      * Сохраняет конфигурацию в файл.
      */
-    private void saveConfig() {
-        try (FileOutputStream output = new FileOutputStream(configFile)) {
-            properties.store(output, "Client Settings");
+    public void saveConfig() {
+        try {
+            Path parent = configFile.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+
+            try (OutputStream output = Files.newOutputStream(configFile)) {
+                properties.store(output, "KillAura Client Settings");
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Failed to save KillAura config: " + e.getMessage());
         }
     }
 
@@ -61,10 +104,15 @@ public class ConfigManager {
      * Загружает конфигурацию из файла.
      */
     private void loadConfig() {
-        try (FileInputStream input = new FileInputStream(configFile)) {
+        if (!Files.exists(configFile)) {
+            saveConfig();
+            return;
+        }
+
+        try (InputStream input = Files.newInputStream(configFile)) {
             properties.load(input);
         } catch (IOException e) {
-            // Файл не существует или ошибка чтения, используем значения по умолчанию
+            System.err.println("Failed to load KillAura config, using defaults: " + e.getMessage());
             saveConfig();
         }
     }

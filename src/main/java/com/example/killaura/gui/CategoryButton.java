@@ -1,5 +1,6 @@
 package com.example.killaura.gui;
 
+import com.example.killaura.core.ModuleCategory;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
@@ -8,14 +9,17 @@ import net.minecraft.text.Text;
  * Кнопка категории.
  */
 public class CategoryButton {
-    private final CategoryPanel.Category category;
-    private final int x;
-    private final int y;
-    private final int width;
-    private final int height;
+    private final ModuleCategory category;
+    private int x;
+    private int y;
+    private int width;
+    private int height;
 
-    public CategoryButton(CategoryPanel.Category category, int x, int y, int width, int height) {
+    public CategoryButton(ModuleCategory category) {
         this.category = category;
+    }
+
+    public void setBounds(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -27,21 +31,21 @@ public class CategoryButton {
      * @param context контекст отрисовки.
      * @param mouseX позиция курсора по оси X.
      * @param mouseY позиция курсора по оси Y.
-     * @param delta время с последнего кадра.
+     * @param selected true, если категория выбрана.
      */
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void render(DrawContext context, int mouseX, int mouseY, boolean selected) {
         boolean hovered = isHovered(mouseX, mouseY);
-        int color = hovered ? 0xFF00d4ff : 0xFF1a1a2e;
+        int color = selected ? 0xFF0077AA : hovered ? 0xFF243A55 : 0xFF151527;
+        int borderColor = selected ? 0xFF00D4FF : 0xFF2C2C44;
 
-        // Рисуем фон кнопки
         context.fill(x, y, x + width, y + height, color);
+        context.fill(x, y, x + 2, y + height, borderColor);
 
-        // Рисуем текст кнопки (исправлено)
         context.drawTextWithShadow(
             MinecraftClient.getInstance().textRenderer,
-            Text.of(category.name()),
-            x + 5,
-            y + 5,
+            Text.of(category.getDisplayName()),
+            x + 8,
+            y + (height - 8) / 2,
             0xFFFFFFFF
         );
     }
@@ -60,7 +64,7 @@ public class CategoryButton {
      * Возвращает категорию.
      * @return категория.
      */
-    public CategoryPanel.Category getCategory() {
+    public ModuleCategory getCategory() {
         return category;
     }
 }

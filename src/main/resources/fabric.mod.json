@@ -1,17 +1,18 @@
 {
   "schemaVersion": 1,
   "id": "killaura",
-  "version": "1.0.0",
+  "version": "${version}",
   "name": "KillAura Client",
-  "description": "KillAura mod for Fabric 1.21.4",
+  "description": "KillAura client mod for Fabric 1.21.4",
   "authors": ["You"],
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
-    "main": [
+    "client": [
       "com.example.killaura.KillAuraMod"
     ]
   },
+  "accessWidener": "accessWidener.txt",
   "depends": {
     "fabricloader": ">=0.15.11",
     "minecraft": "~1.21.4",

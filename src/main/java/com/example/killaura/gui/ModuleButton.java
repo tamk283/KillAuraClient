@@ -10,13 +10,16 @@ import net.minecraft.text.Text;
  */
 public class ModuleButton {
     private final BaseModule module;
-    private final int x;
-    private final int y;
-    private final int width;
-    private final int height;
+    private int x;
+    private int y;
+    private int width;
+    private int height;
 
-    public ModuleButton(BaseModule module, int x, int y, int width, int height) {
+    public ModuleButton(BaseModule module) {
         this.module = module;
+    }
+
+    public void setBounds(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -28,22 +31,23 @@ public class ModuleButton {
      * @param context контекст отрисовки.
      * @param mouseX позиция курсора по оси X.
      * @param mouseY позиция курсора по оси Y.
-     * @param delta время с последнего кадра.
      */
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void render(DrawContext context, int mouseX, int mouseY) {
         boolean hovered = isHovered(mouseX, mouseY);
-        int color = hovered ? 0xFF00d4ff : 0xFF1a1a2e;
-        int textColor = module.isEnabled() ? 0xFF00FF00 : 0xFFFFFFFF;
+        int color = module.isEnabled() ? 0xFF16351F : hovered ? 0xFF243A55 : 0xFF151527;
+        int accentColor = module.isEnabled() ? 0xFF00FF66 : 0xFFFF5555;
+        int textColor = module.isEnabled() ? 0xFFB6FFC8 : 0xFFFFFFFF;
 
-        // Рисуем фон кнопки
         context.fill(x, y, x + width, y + height, color);
+        context.fill(x, y, x + 3, y + height, accentColor);
 
-        // Рисуем текст кнопки (исправлено)
+        String status = module.isEnabled() ? "ON" : "OFF";
+        String text = module.getName() + "  [" + status + "]";
         context.drawTextWithShadow(
             MinecraftClient.getInstance().textRenderer,
-            Text.of(module.getName()),
-            x + 5,
-            y + 5,
+            Text.of(text),
+            x + 9,
+            y + (height - 8) / 2,
             textColor
         );
     }
@@ -56,6 +60,10 @@ public class ModuleButton {
      */
     public boolean isHovered(double mouseX, double mouseY) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
+    }
+
+    public boolean intersects(int top, int bottom) {
+        return y + height >= top && y <= bottom;
     }
 
     /**
