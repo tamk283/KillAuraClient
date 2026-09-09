@@ -1,6 +1,7 @@
 package com.example.killaura.core;
 
 import com.example.killaura.modules.KillAuraModule;
+import com.example.killaura.modules.SpeedModule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ public class ModuleManager {
 
     private void registerModules() {
         modules.add(new KillAuraModule());
+        modules.add(new SpeedModule());
     }
 
     public List<BaseModule> getAllModules() {
