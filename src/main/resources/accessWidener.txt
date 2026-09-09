@@ -1,6 +1,1 @@
-accessible net.minecraft.client.MinecraftClient player
-accessible net.minecraft.client.network.ClientPlayerEntity sprinting
-accessible net.minecraft.client.input.KeyboardInput tick
-accessible net.minecraft.client.MinecraftClient crosshairTarget
-accessible net.minecraft.client.MinecraftClient setScreen
-accessible net.minecraft.client.gui.screen.ingame.InventoryScreen
+accessWidener v2 named

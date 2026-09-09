@@ -1,6 +1,7 @@
 package com.example.killaura.modules;
 
 import com.example.killaura.core.BaseModule;
+import com.example.killaura.core.ModuleCategory;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
@@ -10,15 +11,10 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.MathHelper;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
 public class KillAuraModule extends BaseModule {
     private final MinecraftClient client;
     private LivingEntity target;
     private long lastAttackTime = 0;
-    private boolean isAttacking = false;
 
     private final double range = 4.5;
     private final double rotationSpeed = 0.5;
@@ -27,7 +23,7 @@ public class KillAuraModule extends BaseModule {
     private final long attackDelay = 200;
 
     public KillAuraModule() {
-        super("KillAura", "Автоматическая атака ближайшего врага");
+        super("KillAura", "Автоматическая атака ближайшего врага", ModuleCategory.COMBAT);
         this.client = MinecraftClient.getInstance();
         System.out.println("KillAuraModule created!");
     }
@@ -35,7 +31,6 @@ public class KillAuraModule extends BaseModule {
     @Override
     protected void onEnable() {
         System.out.println("KillAura ENABLED");
-        isAttacking = true;
         if (client.player != null) {
             client.player.sendMessage(Text.of("§aKillAura enabled!"), false);
         }
@@ -44,7 +39,6 @@ public class KillAuraModule extends BaseModule {
     @Override
     protected void onDisable() {
         System.out.println("KillAura DISABLED");
-        isAttacking = false;
         target = null;
         if (client.player != null) {
             client.player.sendMessage(Text.of("§cKillAura disabled!"), false);
@@ -53,19 +47,11 @@ public class KillAuraModule extends BaseModule {
 
     @Override
     protected void onUpdate() {
-        if (client.player == null || client.world == null) return;
-
-        // Включение/выключение по правому Shift
-        if (client.options.sneakKey.wasPressed()) {
-            toggle();
-            return;
-        }
-
-        if (!isAttacking) return;
+        if (client.player == null || client.world == null || client.interactionManager == null) return;
 
         ClientPlayerEntity player = client.player;
 
-        // Поиск цели
+        // Поиск цели без временных списков/сортировок, чтобы не создавать мусор каждый тик.
         target = findTarget(player);
 
         if (target == null) return;
@@ -73,9 +59,10 @@ public class KillAuraModule extends BaseModule {
         // Поворот к цели
         rotateTo(player, target);
 
-        // Атака с задержкой
+        // Атака с задержкой и учетом ванильного cooldown оружия
         long now = System.currentTimeMillis();
         if (now - lastAttackTime < attackDelay) return;
+        if (player.getAttackCooldownProgress(0.0F) < 1.0F) return;
 
         // Атака
         client.interactionManager.attackEntity(player, target);
@@ -84,7 +71,8 @@ public class KillAuraModule extends BaseModule {
     }
 
     private LivingEntity findTarget(ClientPlayerEntity player) {
-        List<LivingEntity> entities = new ArrayList<>();
+        LivingEntity closest = null;
+        double closestDistanceSquared = range * range;
 
         for (Entity entity : client.world.getEntities()) {
             if (!(entity instanceof LivingEntity living)) continue;
@@ -94,20 +82,17 @@ public class KillAuraModule extends BaseModule {
 
             if (onlyPlayers && !(living instanceof PlayerEntity)) continue;
 
-            // Проверка через стены
+            double distanceSquared = player.squaredDistanceTo(living);
+            if (distanceSquared > closestDistanceSquared) continue;
+
+            // Проверка через стены выполняется после дешевой проверки дистанции.
             if (!throughWalls && !player.canSee(living)) continue;
 
-            // Дистанция
-            double dist = player.distanceTo(living);
-            if (dist > range) continue;
-
-            entities.add(living);
+            closest = living;
+            closestDistanceSquared = distanceSquared;
         }
 
-        if (entities.isEmpty()) return null;
-
-        entities.sort(Comparator.comparingDouble(e -> player.distanceTo(e)));
-        return entities.get(0);
+        return closest;
     }
 
     private void rotateTo(ClientPlayerEntity player, LivingEntity target) {
@@ -119,12 +104,16 @@ public class KillAuraModule extends BaseModule {
         float targetYaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90;
         float targetPitch = (float) -Math.toDegrees(Math.atan2(dy, dist));
 
-        // Плавный поворот
-        float currentYaw = player.getYaw();
-        float currentPitch = player.getPitch();
+        // Плавный поворот с корректной обработкой перехода через -180/180 градусов
+        float yawDelta = MathHelper.wrapDegrees(targetYaw - player.getYaw());
+        float pitchDelta = targetPitch - player.getPitch();
 
-        float newYaw = (float) (currentYaw + (targetYaw - currentYaw) * rotationSpeed);
-        float newPitch = (float) (currentPitch + (targetPitch - currentPitch) * rotationSpeed);
+        float newYaw = player.getYaw() + (float) (yawDelta * rotationSpeed);
+        float newPitch = MathHelper.clamp(
+            player.getPitch() + (float) (pitchDelta * rotationSpeed),
+            -90.0F,
+            90.0F
+        );
 
         player.setYaw(newYaw);
         player.setPitch(newPitch);

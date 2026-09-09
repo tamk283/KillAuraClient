@@ -1,8 +1,11 @@
 package com.example.killaura.gui;
 
 import com.example.killaura.core.BaseModule;
+import com.example.killaura.core.ModuleCategory;
 import com.example.killaura.core.ModuleManager;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,21 +16,41 @@ import java.util.List;
 public class ModuleListPanel {
     private final ClickGUI parent;
     private final List<ModuleButton> buttons;
-    private CategoryPanel.Category category;
+    private ModuleCategory category = ModuleCategory.COMBAT;
+    private int x;
+    private int y;
+    private int width;
+    private int height;
+    private int buttonHeight = 22;
+    private int gap = 6;
     private int scrollOffset;
 
     public ModuleListPanel(ClickGUI parent) {
         this.parent = parent;
         this.buttons = new ArrayList<>();
+        updateButtons();
     }
 
     /**
      * Устанавливает категорию.
      * @param category категория.
      */
-    public void setCategory(CategoryPanel.Category category) {
+    public void setCategory(ModuleCategory category) {
         this.category = category;
+        this.scrollOffset = 0;
         updateButtons();
+        updateButtonBounds();
+    }
+
+    public void setBounds(int x, int y, int width, int height, int buttonHeight, int gap) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.buttonHeight = buttonHeight;
+        this.gap = gap;
+        scrollOffset = Math.min(scrollOffset, getMaxScrollOffset());
+        updateButtonBounds();
     }
 
     /**
@@ -35,12 +58,30 @@ public class ModuleListPanel {
      */
     private void updateButtons() {
         buttons.clear();
-        int y = 10;
-        List<BaseModule> modules = ModuleManager.getInstance().getAllModules();
+        List<BaseModule> modules = ModuleManager.getInstance().getModulesByCategory(category);
         for (BaseModule module : modules) {
-            buttons.add(new ModuleButton(module, 120, y, 200, 20));
-            y += 25;
+            buttons.add(new ModuleButton(module));
         }
+    }
+
+    private void updateButtonBounds() {
+        int currentY = y + 22 - scrollOffset;
+        for (ModuleButton button : buttons) {
+            button.setBounds(x + 6, currentY, width - 12, buttonHeight);
+            currentY += buttonHeight + gap;
+        }
+    }
+
+    private int getContentHeight() {
+        if (buttons.isEmpty()) {
+            return 0;
+        }
+        return buttons.size() * buttonHeight + (buttons.size() - 1) * gap;
+    }
+
+    private int getMaxScrollOffset() {
+        int visibleHeight = Math.max(0, height - 28);
+        return Math.max(0, getContentHeight() - visibleHeight);
     }
 
     /**
@@ -48,12 +89,23 @@ public class ModuleListPanel {
      * @param context контекст отрисовки.
      * @param mouseX позиция курсора по оси X.
      * @param mouseY позиция курсора по оси Y.
-     * @param delta время с последнего кадра.
      */
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        for (ModuleButton button : buttons) {
-            button.render(context, mouseX, mouseY, delta);
+    public void render(DrawContext context, int mouseX, int mouseY) {
+        context.fill(x, y, x + width, y + height, 0xDD10101E);
+        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.of(category.getDisplayName()), x + 8, y + 8, 0xFF00D4FF);
+
+        if (buttons.isEmpty()) {
+            context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.of("No modules"), x + 8, y + 32, 0xFFAAAAAA);
+            return;
         }
+
+        context.enableScissor(x, y + 22, x + width, y + height);
+        for (ModuleButton button : buttons) {
+            if (button.intersects(y + 22, y + height)) {
+                button.render(context, mouseX, mouseY);
+            }
+        }
+        context.disableScissor();
     }
 
     /**
@@ -64,27 +116,19 @@ public class ModuleListPanel {
      * @return true, если клик обработан.
      */
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (mouseX < x || mouseX > x + width || mouseY < y + 22 || mouseY > y + height) {
+            return false;
+        }
+
         for (ModuleButton moduleButton : buttons) {
             if (moduleButton.isHovered(mouseX, mouseY)) {
+                parent.getSettingsPanel().setModule(moduleButton.getModule());
                 if (button == 0) {
                     moduleButton.getModule().toggle();
-                } else if (button == 1) {
-                    parent.getSettingsPanel().setModule(moduleButton.getModule());
                 }
                 return true;
             }
         }
-        return false;
-    }
-
-    /**
-     * Обрабатывает отпускание кнопки мыши.
-     * @param mouseX позиция курсора по оси X.
-     * @param mouseY позиция курсора по оси Y.
-     * @param button кнопка мыши.
-     * @return true, если отпускание кнопки обработано.
-     */
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
         return false;
     }
 
@@ -96,8 +140,13 @@ public class ModuleListPanel {
      * @return true, если прокрутка обработана.
      */
     public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-        scrollOffset += (int) amount * 10;
-        scrollOffset = Math.max(0, scrollOffset);
+        if (mouseX < x || mouseX > x + width || mouseY < y || mouseY > y + height) {
+            return false;
+        }
+
+        scrollOffset -= (int) Math.round(amount * (buttonHeight + gap));
+        scrollOffset = Math.max(0, Math.min(scrollOffset, getMaxScrollOffset()));
+        updateButtonBounds();
         return true;
     }
 }

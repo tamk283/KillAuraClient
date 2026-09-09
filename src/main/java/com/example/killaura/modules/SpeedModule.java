@@ -1,6 +1,7 @@
 package com.example.killaura.modules;
 
 import com.example.killaura.core.BaseModule;
+import com.example.killaura.core.ModuleCategory;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -12,14 +13,13 @@ import net.minecraft.text.Text;
  */
 public class SpeedModule extends BaseModule {
     private final MinecraftClient client;
-    private final double speedMultiplier = 1.5; // Увеличение скорости на 50%
     private final int effectDuration = 100; // Длительность эффекта в тиках
     private final int effectAmplifier = 1; // Уровень Speed (0 = Speed I, 1 = Speed II)
     private long lastEffectTime = 0;
-    private final long effectDelay = 50; // Задержка между применениями эффекта (мс)
+    private final long effectDelay = 250; // Задержка между применениями эффекта (мс)
 
     public SpeedModule() {
-        super("Speed", "Увеличение скорости движения");
+        super("Speed", "Увеличение скорости движения", ModuleCategory.MOVEMENT);
         this.client = MinecraftClient.getInstance();
         System.out.println("SpeedModule created!");
     }
@@ -35,6 +35,7 @@ public class SpeedModule extends BaseModule {
     @Override
     protected void onDisable() {
         System.out.println("Speed DISABLED");
+        lastEffectTime = 0;
         if (client.player != null) {
             client.player.sendMessage(Text.of("§cSpeed disabled!"), false);
             // Удаляем эффект скорости при отключении
@@ -55,10 +56,10 @@ public class SpeedModule extends BaseModule {
             return;
         }
 
-        // Применяем эффект скорости с задержкой
+        // Применяем эффект скорости с задержкой.
+        // Не умножаем velocity вручную каждый тик, чтобы скорость не росла экспоненциально.
         long now = System.currentTimeMillis();
         if (now - lastEffectTime >= effectDelay) {
-            // Применяем эффект Speed
             player.addStatusEffect(
                 new StatusEffectInstance(
                     StatusEffects.SPEED,
@@ -69,15 +70,6 @@ public class SpeedModule extends BaseModule {
                 )
             );
             lastEffectTime = now;
-        }
-
-        // Дополнительное увеличение скорости через прямое изменение velocity
-        if (player.isOnGround() && (player.input.movementSideways != 0 || player.input.movementForward != 0)) {
-            player.setVelocity(
-                player.getVelocity().x * speedMultiplier,
-                player.getVelocity().y,
-                player.getVelocity().z * speedMultiplier
-            );
         }
     }
 }

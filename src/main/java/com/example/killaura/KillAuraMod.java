@@ -1,24 +1,23 @@
 package com.example.killaura;
 
+import com.example.killaura.core.ConfigManager;
+import com.example.killaura.core.KeyBindingManager;
 import com.example.killaura.core.ModuleManager;
-import com.example.killaura.modules.KillAuraModule;
-import net.fabricmc.api.ModInitializer;
+import com.example.killaura.gui.ClickGUI;
+import com.example.killaura.gui.HudRenderer;
+import com.example.killaura.gui.MobileClickGUI;
+import net.fabricmc.api.ClientModInitializer;
 
-public class KillAuraMod implements ModInitializer {
+public class KillAuraMod implements ClientModInitializer {
     @Override
-    public void onInitialize() {
+    public void onInitializeClient() {
         System.out.println("KillAura Client initialized!");
 
-        // Получаем менеджер модулей
-        ModuleManager manager = ModuleManager.getInstance();
-
-        // Находим KillAura и включаем её
-        KillAuraModule killAura = (KillAuraModule) manager.getModule("KillAura");
-        if (killAura != null) {
-            killAura.enable();
-            System.out.println("KillAura enabled!");
-        } else {
-            System.out.println("KillAura module not found!");
-        }
+        ConfigManager.getInstance();
+        ModuleManager.getInstance();
+        KeyBindingManager.getInstance();
+        ClickGUI.getInstance();
+        MobileClickGUI.getInstance();
+        HudRenderer.register();
     }
 }

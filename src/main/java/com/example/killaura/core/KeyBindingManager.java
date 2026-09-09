@@ -1,6 +1,7 @@
 package com.example.killaura.core;
 
 import com.example.killaura.gui.ClickGUI;
+import com.example.killaura.gui.MobileClickGUI;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
@@ -13,11 +14,10 @@ import org.lwjgl.glfw.GLFW;
  */
 public class KeyBindingManager {
     private static final KeyBindingManager INSTANCE = new KeyBindingManager();
-    private final MinecraftClient client;
     private KeyBinding openGuiKey;
+    private KeyBinding openMobileGuiKey;
 
     private KeyBindingManager() {
-        client = MinecraftClient.getInstance();
         registerKeyBindings();
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
@@ -40,6 +40,13 @@ public class KeyBindingManager {
             GLFW.GLFW_KEY_RIGHT_SHIFT,
             "category.killaura"
         ));
+
+        openMobileGuiKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.killaura.openmobilegui",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_RIGHT_CONTROL,
+            "category.killaura"
+        ));
     }
 
     /**
@@ -47,12 +54,18 @@ public class KeyBindingManager {
      * @param client клиент Minecraft.
      */
     private void onTick(MinecraftClient client) {
-        if (openGuiKey.wasPressed() && client.currentScreen == null) {
-            // Открыть/закрыть меню
-            if (ClickGUI.getInstance().isOpen()) {
-                ClickGUI.getInstance().close();
-            } else {
-                ClickGUI.getInstance().open();
+        while (openGuiKey.wasPressed()) {
+            ClickGUI clickGUI = ClickGUI.getInstance();
+            if (client.currentScreen == clickGUI) {
+                clickGUI.close();
+            } else if (client.currentScreen == null) {
+                clickGUI.open();
+            }
+        }
+
+        while (openMobileGuiKey.wasPressed()) {
+            if (client.currentScreen == null && client.player != null) {
+                MobileClickGUI.getInstance().toggle();
             }
         }
     }
