@@ -3,9 +3,9 @@ plugins {
     id 'maven-publish'
 }
 
-// Java версия для максимальной совместимости с мобильными лаунчерами
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
+// Java 21 для максимальной производительности и новых фич
+sourceCompatibility = JavaVersion.VERSION_21
+targetCompatibility = JavaVersion.VERSION_21
 
 version = '1.0.0-mobile'
 group = 'com.example.killaura'
@@ -33,7 +33,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 17
+    it.options.release = 21
 }
 
 java {
@@ -71,7 +71,7 @@ tasks.register('buildMobile') {
     doLast {
         println "KillAura Mobile build completed!"
         println "Artifacts:"
-        println "  - build/libs/KillAuraClient-mobile-${version}.jar (оптимизированная версия)"
+        println "  - build/libs/KillAuraClient-mobile-${version}.jar (оптимизированная версия для мобильных)"
         println "  - build/libs/KillAuraClient-${version}.jar (стандартная версия)"
     }
 }
@@ -81,4 +81,5 @@ ext {
     // Настройки для мобильных устройств
     isMobileOptimized = true
     enableMobileFeatures = true
+    javaVersion = 21
 }
