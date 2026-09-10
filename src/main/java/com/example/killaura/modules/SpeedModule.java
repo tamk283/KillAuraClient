@@ -4,22 +4,22 @@ import com.example.killaura.core.BaseModule;
 import com.example.killaura.core.ModuleCategory;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.Vec3d;
 
 /**
  * Модуль для увеличения скорости движения игрока.
  */
 public class SpeedModule extends BaseModule {
     private final MinecraftClient client;
-    private final int effectDuration = 20; // Длительность эффекта в тиках. Короткая, чтобы быстро затухала после выключения.
-    private final int effectAmplifier = 1; // Уровень Speed (0 = Speed I, 1 = Speed II)
-    private long lastEffectTime = 0;
-    private final long effectDelay = 250; // Задержка между применениями эффекта (мс)
+
+    // Горизонтальная скорость задаётся напрямую, без ванильного эффекта Speed.
+    private final double groundSpeed = 0.34;
+    private final double airSpeed = 0.28;
+    private final double sneakMultiplier = 0.35;
 
     public SpeedModule() {
-        super("Speed", "Увеличение скорости движения", ModuleCategory.MOVEMENT);
+        super("Speed", "Ускорение движения персонажа", ModuleCategory.MOVEMENT);
         this.client = MinecraftClient.getInstance();
         System.out.println("SpeedModule created!");
     }
@@ -35,11 +35,8 @@ public class SpeedModule extends BaseModule {
     @Override
     protected void onDisable() {
         System.out.println("Speed DISABLED");
-        lastEffectTime = 0;
         if (client.player != null) {
             client.player.sendMessage(Text.of("§cSpeed disabled!"), false);
-            // Не удаляем StatusEffects.SPEED принудительно: у игрока мог быть легальный эффект скорости.
-            // Наш короткий эффект сам исчезнет примерно за секунду.
         }
     }
 
@@ -48,28 +45,36 @@ public class SpeedModule extends BaseModule {
         if (client.player == null || client.world == null) return;
 
         ClientPlayerEntity player = client.player;
+        float forward = player.input.movementForward;
+        float sideways = player.input.movementSideways;
 
-        // Проверка движения игрока
-        boolean isMoving = player.input.movementSideways != 0 || player.input.movementForward != 0;
-
-        if (!isMoving) {
+        if (forward == 0.0F && sideways == 0.0F) {
             return;
         }
 
-        // Применяем эффект скорости с задержкой.
-        // Не умножаем velocity вручную каждый тик, чтобы скорость не росла экспоненциально.
-        long now = System.currentTimeMillis();
-        if (now - lastEffectTime >= effectDelay) {
-            player.addStatusEffect(
-                new StatusEffectInstance(
-                    StatusEffects.SPEED,
-                    effectDuration,
-                    effectAmplifier,
-                    false, // показывать ли частицы
-                    false  // показывать ли иконку эффекта
-                )
-            );
-            lastEffectTime = now;
+        applyHorizontalSpeed(player, forward, sideways);
+    }
+
+    private void applyHorizontalSpeed(ClientPlayerEntity player, float forward, float sideways) {
+        double inputLength = Math.sqrt(forward * forward + sideways * sideways);
+        if (inputLength <= 0.0D) {
+            return;
         }
+
+        double normalizedForward = forward / inputLength;
+        double normalizedSideways = sideways / inputLength;
+        double yawRadians = Math.toRadians(player.getYaw());
+        double sin = Math.sin(yawRadians);
+        double cos = Math.cos(yawRadians);
+
+        double directionX = normalizedSideways * cos - normalizedForward * sin;
+        double directionZ = normalizedForward * cos + normalizedSideways * sin;
+        double speed = player.isOnGround() ? groundSpeed : airSpeed;
+        if (player.isSneaking()) {
+            speed *= sneakMultiplier;
+        }
+
+        Vec3d velocity = player.getVelocity();
+        player.setVelocity(directionX * speed, velocity.y, directionZ * speed);
     }
 }
