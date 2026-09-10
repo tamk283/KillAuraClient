@@ -15,12 +15,15 @@ public class KillAuraModule extends BaseModule {
     private final MinecraftClient client;
     private LivingEntity target;
     private long lastAttackTime = 0;
+    private long lastTargetSearchTime = 0;
 
     private final double range = 4.5;
+    private final double rangeSquared = range * range;
     private final double rotationSpeed = 0.5;
     private final boolean throughWalls = false;
     private final boolean onlyPlayers = true;
     private final long attackDelay = 200;
+    private final long targetSearchDelay = 100;
 
     public KillAuraModule() {
         super("KillAura", "Автоматическая атака ближайшего врага", ModuleCategory.COMBAT);
@@ -31,6 +34,7 @@ public class KillAuraModule extends BaseModule {
     @Override
     protected void onEnable() {
         System.out.println("KillAura ENABLED");
+        lastTargetSearchTime = 0;
         if (client.player != null) {
             client.player.sendMessage(Text.of("§aKillAura enabled!"), false);
         }
@@ -40,6 +44,7 @@ public class KillAuraModule extends BaseModule {
     protected void onDisable() {
         System.out.println("KillAura DISABLED");
         target = null;
+        lastTargetSearchTime = 0;
         if (client.player != null) {
             client.player.sendMessage(Text.of("§cKillAura disabled!"), false);
         }
@@ -50,9 +55,13 @@ public class KillAuraModule extends BaseModule {
         if (client.player == null || client.world == null || client.interactionManager == null) return;
 
         ClientPlayerEntity player = client.player;
+        long now = System.currentTimeMillis();
 
-        // Поиск цели без временных списков/сортировок, чтобы не создавать мусор каждый тик.
-        target = findTarget(player);
+        // Не сканируем весь мир каждый тик: обновляем цель периодически или когда старая цель стала невалидной.
+        if (target == null || !isValidTarget(player, target) || now - lastTargetSearchTime >= targetSearchDelay) {
+            target = findTarget(player);
+            lastTargetSearchTime = now;
+        }
 
         if (target == null) return;
 
@@ -60,7 +69,6 @@ public class KillAuraModule extends BaseModule {
         rotateTo(player, target);
 
         // Атака с задержкой и учетом ванильного cooldown оружия
-        long now = System.currentTimeMillis();
         if (now - lastAttackTime < attackDelay) return;
         if (player.getAttackCooldownProgress(0.0F) < 1.0F) return;
 
@@ -72,27 +80,31 @@ public class KillAuraModule extends BaseModule {
 
     private LivingEntity findTarget(ClientPlayerEntity player) {
         LivingEntity closest = null;
-        double closestDistanceSquared = range * range;
+        double closestDistanceSquared = rangeSquared;
 
         for (Entity entity : client.world.getEntities()) {
             if (!(entity instanceof LivingEntity living)) continue;
-            if (living == player) continue;
-            if (!living.isAlive()) continue;
-            if (living.getHealth() <= 0) continue;
-
-            if (onlyPlayers && !(living instanceof PlayerEntity)) continue;
+            if (!isValidTarget(player, living)) continue;
 
             double distanceSquared = player.squaredDistanceTo(living);
-            if (distanceSquared > closestDistanceSquared) continue;
-
-            // Проверка через стены выполняется после дешевой проверки дистанции.
-            if (!throughWalls && !player.canSee(living)) continue;
-
-            closest = living;
-            closestDistanceSquared = distanceSquared;
+            if (distanceSquared <= closestDistanceSquared) {
+                closest = living;
+                closestDistanceSquared = distanceSquared;
+            }
         }
 
         return closest;
+    }
+
+    private boolean isValidTarget(ClientPlayerEntity player, LivingEntity living) {
+        if (living == player) return false;
+        if (!living.isAlive()) return false;
+        if (living.getHealth() <= 0) return false;
+        if (onlyPlayers && !(living instanceof PlayerEntity)) return false;
+        if (player.squaredDistanceTo(living) > rangeSquared) return false;
+
+        // Проверка через стены выполняется после дешевых проверок.
+        return throughWalls || player.canSee(living);
     }
 
     private void rotateTo(ClientPlayerEntity player, LivingEntity target) {

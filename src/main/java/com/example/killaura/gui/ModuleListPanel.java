@@ -45,10 +45,10 @@ public class ModuleListPanel {
     public void setBounds(int x, int y, int width, int height, int buttonHeight, int gap) {
         this.x = x;
         this.y = y;
-        this.width = width;
-        this.height = height;
-        this.buttonHeight = buttonHeight;
-        this.gap = gap;
+        this.width = Math.max(1, width);
+        this.height = Math.max(1, height);
+        this.buttonHeight = Math.max(16, buttonHeight);
+        this.gap = Math.max(2, gap);
         scrollOffset = Math.min(scrollOffset, getMaxScrollOffset());
         updateButtonBounds();
     }
@@ -66,8 +66,9 @@ public class ModuleListPanel {
 
     private void updateButtonBounds() {
         int currentY = y + 22 - scrollOffset;
+        int buttonWidth = Math.max(1, width - 12);
         for (ModuleButton button : buttons) {
-            button.setBounds(x + 6, currentY, width - 12, buttonHeight);
+            button.setBounds(x + 6, currentY, buttonWidth, buttonHeight);
             currentY += buttonHeight + gap;
         }
     }
@@ -99,13 +100,15 @@ public class ModuleListPanel {
             return;
         }
 
-        context.enableScissor(x, y + 22, x + width, y + height);
-        for (ModuleButton button : buttons) {
-            if (button.intersects(y + 22, y + height)) {
-                button.render(context, mouseX, mouseY);
+        if (y + height > y + 22) {
+            context.enableScissor(x, y + 22, x + width, y + height);
+            for (ModuleButton button : buttons) {
+                if (button.intersects(y + 22, y + height)) {
+                    button.render(context, mouseX, mouseY);
+                }
             }
+            context.disableScissor();
         }
-        context.disableScissor();
     }
 
     /**

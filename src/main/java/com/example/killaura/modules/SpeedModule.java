@@ -13,7 +13,7 @@ import net.minecraft.text.Text;
  */
 public class SpeedModule extends BaseModule {
     private final MinecraftClient client;
-    private final int effectDuration = 100; // Длительность эффекта в тиках
+    private final int effectDuration = 20; // Длительность эффекта в тиках. Короткая, чтобы быстро затухала после выключения.
     private final int effectAmplifier = 1; // Уровень Speed (0 = Speed I, 1 = Speed II)
     private long lastEffectTime = 0;
     private final long effectDelay = 250; // Задержка между применениями эффекта (мс)
@@ -38,8 +38,8 @@ public class SpeedModule extends BaseModule {
         lastEffectTime = 0;
         if (client.player != null) {
             client.player.sendMessage(Text.of("§cSpeed disabled!"), false);
-            // Удаляем эффект скорости при отключении
-            client.player.removeStatusEffect(StatusEffects.SPEED);
+            // Не удаляем StatusEffects.SPEED принудительно: у игрока мог быть легальный эффект скорости.
+            // Наш короткий эффект сам исчезнет примерно за секунду.
         }
     }
 

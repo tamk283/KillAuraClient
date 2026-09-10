@@ -47,6 +47,10 @@ public class MobileClickGUI {
             return;
         }
 
+        if (selectedModuleIndex >= modules.size()) {
+            selectedModuleIndex = modules.size() - 1;
+        }
+
         if (open) {
             if (client.options.jumpKey.wasPressed()) {
                 selectedModuleIndex = (selectedModuleIndex - 1 + modules.size()) % modules.size();
@@ -77,29 +81,43 @@ public class MobileClickGUI {
 
         TextRenderer textRenderer = client.textRenderer;
 
-        int panelWidth = Math.min(width - 16, 280);
-        int rowHeight = height < 420 ? 24 : 28;
-        int panelHeight = Math.min(height - 16, 34 + modules.size() * rowHeight + 24);
-        int x = (width - panelWidth) / 2;
-        int y = (height - panelHeight) / 2;
+        int safeWidth = Math.max(1, width);
+        int safeHeight = Math.max(1, height);
+        int panelWidth = Math.max(1, Math.min(safeWidth - 8, 280));
+        int rowHeight = safeHeight < 420 ? 24 : 28;
+        int maxPanelHeight = Math.max(1, safeHeight - 8);
+        int panelHeight = Math.max(1, Math.min(maxPanelHeight, 34 + modules.size() * rowHeight + 24));
+        int x = Math.max(0, (safeWidth - panelWidth) / 2);
+        int y = Math.max(0, (safeHeight - panelHeight) / 2);
 
         drawContext.fill(x, y, x + panelWidth, y + panelHeight, 0xDD10101E);
         drawContext.drawTextWithShadow(textRenderer, Text.of("Mobile modules"), x + 10, y + 10, 0xFF00D4FF);
 
-        int currentY = y + 32;
-        for (int i = 0; i < modules.size(); i++) {
-            BaseModule module = modules.get(i);
-            boolean selected = i == selectedModuleIndex;
-            int rowColor = selected ? 0xFF243A55 : 0xFF151527;
-            int accentColor = module.isEnabled() ? 0xFF00FF66 : 0xFFFF5555;
-            drawContext.fill(x + 8, currentY, x + panelWidth - 8, currentY + rowHeight - 4, rowColor);
-            drawContext.fill(x + 8, currentY, x + 11, currentY + rowHeight - 4, accentColor);
+        int listTop = y + 32;
+        int listBottom = y + panelHeight - 22;
+        if (listBottom > listTop) {
+            drawContext.enableScissor(x, listTop, x + panelWidth, listBottom);
+            int currentY = listTop;
+            for (int i = 0; i < modules.size(); i++) {
+                if (currentY > listBottom) {
+                    break;
+                }
 
-            String status = module.isEnabled() ? "ON" : "OFF";
-            String text = module.getName() + "  [" + status + "]";
-            int textColor = selected ? 0xFF00D4FF : 0xFFFFFFFF;
-            drawContext.drawTextWithShadow(textRenderer, Text.of(text), x + 17, currentY + (rowHeight - 12) / 2, textColor);
-            currentY += rowHeight;
+                BaseModule module = modules.get(i);
+                boolean selected = i == selectedModuleIndex;
+                int rowColor = selected ? 0xFF243A55 : 0xFF151527;
+                int accentColor = module.isEnabled() ? 0xFF00FF66 : 0xFFFF5555;
+                int rowRight = Math.max(x + 9, x + panelWidth - 8);
+                drawContext.fill(x + 8, currentY, rowRight, currentY + rowHeight - 4, rowColor);
+                drawContext.fill(x + 8, currentY, x + 11, currentY + rowHeight - 4, accentColor);
+
+                String status = module.isEnabled() ? "ON" : "OFF";
+                String text = module.getName() + "  [" + status + "]";
+                int textColor = selected ? 0xFF00D4FF : 0xFFFFFFFF;
+                drawContext.drawTextWithShadow(textRenderer, Text.of(text), x + 17, currentY + (rowHeight - 12) / 2, textColor);
+                currentY += rowHeight;
+            }
+            drawContext.disableScissor();
         }
 
         String instructions = "Jump/Sneak: Select | Attack: Toggle | Right Ctrl: Close";

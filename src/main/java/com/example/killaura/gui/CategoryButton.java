@@ -22,8 +22,8 @@ public class CategoryButton {
     public void setBounds(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
-        this.width = width;
-        this.height = height;
+        this.width = Math.max(1, width);
+        this.height = Math.max(1, height);
     }
 
     /**

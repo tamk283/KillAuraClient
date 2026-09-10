@@ -41,17 +41,18 @@ public class CategoryPanel {
     public void setBounds(int x, int y, int width, int height, int buttonHeight, int gap) {
         this.x = x;
         this.y = y;
-        this.width = width;
-        this.height = height;
-        this.buttonHeight = buttonHeight;
-        this.gap = gap;
+        this.width = Math.max(1, width);
+        this.height = Math.max(1, height);
+        this.buttonHeight = Math.max(16, buttonHeight);
+        this.gap = Math.max(2, gap);
         updateButtonBounds();
     }
 
     private void updateButtonBounds() {
         int currentY = y + 22;
+        int buttonWidth = Math.max(1, width - 12);
         for (CategoryButton button : buttons) {
-            button.setBounds(x + 6, currentY, width - 12, buttonHeight);
+            button.setBounds(x + 6, currentY, buttonWidth, buttonHeight);
             currentY += buttonHeight + gap;
         }
     }
@@ -66,8 +67,12 @@ public class CategoryPanel {
         context.fill(x, y, x + width, y + height, 0xDD10101E);
         context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.of("Categories"), x + 8, y + 8, 0xFF00D4FF);
 
-        for (CategoryButton button : buttons) {
-            button.render(context, mouseX, mouseY, button.getCategory() == selectedCategory);
+        if (y + height > y + 22) {
+            context.enableScissor(x, y + 22, x + width, y + height);
+            for (CategoryButton button : buttons) {
+                button.render(context, mouseX, mouseY, button.getCategory() == selectedCategory);
+            }
+            context.disableScissor();
         }
     }
 
@@ -78,6 +83,10 @@ public class CategoryPanel {
      * @return true, если клик обработан.
      */
     public boolean mouseClicked(double mouseX, double mouseY) {
+        if (mouseX < x || mouseX > x + width || mouseY < y + 22 || mouseY > y + height) {
+            return false;
+        }
+
         for (CategoryButton categoryButton : buttons) {
             if (categoryButton.isHovered(mouseX, mouseY)) {
                 selectedCategory = categoryButton.getCategory();

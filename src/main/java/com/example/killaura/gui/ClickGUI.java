@@ -79,16 +79,32 @@ public class ClickGUI extends Screen {
         lastWidth = width;
         lastHeight = height;
 
-        boolean compact = width < 620 || height < 420;
+        int safeWidth = Math.max(width, 1);
+        int safeHeight = Math.max(height, 1);
+        boolean compact = safeWidth < 620 || safeHeight < 420;
         int margin = compact ? 6 : 12;
         int gap = compact ? 6 : 10;
         int buttonHeight = compact ? 28 : 24;
-        int contentHeight = Math.max(120, height - margin * 2);
 
-        int categoryWidth = clamp(width / 4, compact ? 92 : 112, compact ? 130 : 160);
-        int moduleWidth = clamp(width / 3, compact ? 150 : 190, compact ? 240 : 280);
+        // On very narrow mobile screens a horizontal layout can overflow badly,
+        // so switch to a stacked layout with all panels inside the viewport.
+        if (safeWidth < 360) {
+            int usableWidth = Math.max(1, safeWidth - margin * 2);
+            int usableHeight = Math.max(1, safeHeight - margin * 2);
+            int categoryHeight = clamp(usableHeight / 3, 86, Math.max(86, usableHeight - 60));
+            int moduleHeight = Math.max(64, usableHeight - categoryHeight - gap);
+
+            categoryPanel.setBounds(margin, margin, usableWidth, categoryHeight, buttonHeight, gap);
+            moduleListPanel.setBounds(margin, margin + categoryHeight + gap, usableWidth, moduleHeight, buttonHeight, gap);
+            settingsPanel.setBounds(margin, margin + categoryHeight + gap, usableWidth, 0);
+            return;
+        }
+
+        int contentHeight = Math.max(120, safeHeight - margin * 2);
+        int categoryWidth = clamp(safeWidth / 4, compact ? 92 : 112, compact ? 130 : 160);
+        int moduleWidth = clamp(safeWidth / 3, compact ? 150 : 190, compact ? 240 : 280);
         int settingsX = margin + categoryWidth + gap + moduleWidth + gap;
-        int settingsWidth = width - settingsX - margin;
+        int settingsWidth = safeWidth - settingsX - margin;
 
         if (settingsWidth >= 170) {
             categoryPanel.setBounds(margin, margin, categoryWidth, contentHeight, buttonHeight, gap);
@@ -97,18 +113,21 @@ public class ClickGUI extends Screen {
             return;
         }
 
-        int settingsHeight = clamp(height / 3, 88, 130);
-        int topHeight = Math.max(100, height - margin * 3 - settingsHeight);
-        int availableTopWidth = width - margin * 2 - gap;
-        categoryWidth = clamp(availableTopWidth / 3, 90, 140);
-        moduleWidth = Math.max(130, availableTopWidth - categoryWidth);
+        int settingsHeight = clamp(safeHeight / 3, 88, 130);
+        int topHeight = Math.max(100, safeHeight - margin * 3 - settingsHeight);
+        int availableTopWidth = Math.max(1, safeWidth - margin * 2 - gap);
+        categoryWidth = clamp(availableTopWidth / 3, 90, Math.max(90, availableTopWidth - 130));
+        moduleWidth = Math.max(1, availableTopWidth - categoryWidth);
 
         categoryPanel.setBounds(margin, margin, categoryWidth, topHeight, buttonHeight, gap);
         moduleListPanel.setBounds(margin + categoryWidth + gap, margin, moduleWidth, topHeight, buttonHeight, gap);
-        settingsPanel.setBounds(margin, margin + topHeight + gap, width - margin * 2, settingsHeight);
+        settingsPanel.setBounds(margin, margin + topHeight + gap, Math.max(1, safeWidth - margin * 2), settingsHeight);
     }
 
     private int clamp(int value, int min, int max) {
+        if (max < min) {
+            return min;
+        }
         return Math.max(min, Math.min(value, max));
     }
 
