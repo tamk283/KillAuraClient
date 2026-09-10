@@ -3,10 +3,11 @@ plugins {
     id 'maven-publish'
 }
 
-sourceCompatibility = JavaVersion.VERSION_21
-targetCompatibility = JavaVersion.VERSION_21
+// Java версия для максимальной совместимости с мобильными лаунчерами
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
 
-version = '1.0.0'
+version = '1.0.0-mobile'
 group = 'com.example.killaura'
 
 repositories {
@@ -32,7 +33,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = 17
 }
 
 java {
@@ -43,4 +44,41 @@ jar {
     from("LICENSE") {
         rename { "${it}_${project.archivesBaseName}"}
     }
+}
+
+// Оптимизация для мобильных устройств
+tasks.register('optimizedJar', Jar) {
+    from sourceSets.main.output
+    archiveBaseName = 'KillAuraClient-mobile'
+    archiveVersion = version
+    
+    // Исключаем лишние файлы для уменьшения размера
+    exclude 'META-INF/maven/**'
+    exclude '**/*.kotlin_module'
+    exclude '**/*.kotlin_builtins'
+    
+    manifest {
+        attributes 'Implementation-Title': 'KillAura Mobile',
+                   'Implementation-Version': version,
+                   'Specification-Title': 'KillAura',
+                   'Specification-Version': version
+    }
+}
+
+// Задача для сборки мобильной версии
+tasks.register('buildMobile') {
+    dependsOn 'optimizedJar', 'build'
+    doLast {
+        println "KillAura Mobile build completed!"
+        println "Artifacts:"
+        println "  - build/libs/KillAuraClient-mobile-${version}.jar (оптимизированная версия)"
+        println "  - build/libs/KillAuraClient-${version}.jar (стандартная версия)"
+    }
+}
+
+// Настройки для PojavLauncher и других мобильных лаунчеров
+ext {
+    // Настройки для мобильных устройств
+    isMobileOptimized = true
+    enableMobileFeatures = true
 }
